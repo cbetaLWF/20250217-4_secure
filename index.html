@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推し布教Photoめ～か～!!</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        canvas { border: 1px solid #ccc; margin-top: 10px; }
+        .controls { margin-top: 10px; }
+    </style>
+    <script>
+        // HTTP → HTTPSへ自動リダイレクト
+        if (location.protocol !== 'https:') {
+            location.replace(`https://${location.host}${location.pathname}`);
+        }
+    </script>
+</head>
+<body>
+    <h2>推し布教Photoめ～か～!!</h2>
+    <input type="file" id="imageUpload" accept="image/*">
+    <input type="text" id="textInput" placeholder="テキストを入力">
+    <button onclick="generateImage()">画像作成</button>
+    <button id="downloadBtn" style="display: none;" onclick="downloadImage()">画像をダウンロード！</button>
+    <a id="twitterShare" href="#" target="_blank" style="display: none;">画像をDLかスクショしてXでシェア！！</a>
+    <canvas id="canvas"></canvas>
+    
+    <script>
+        function sanitizeText(text) {
+            return text.replace(/[&<>"']/g, function(match) {
+                const escapeMap = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                };
+                return escapeMap[match];
+            });
+        }
+
+        function generateImage() {
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+            const input = document.getElementById("imageUpload").files[0];
+            const text = sanitizeText(document.getElementById("textInput").value);
+            const template = new Image();
+            template.src = "template.jpg";
+
+            if (input) {
+                if (!input.type.startsWith("image/")) {
+                    alert("画像ファイルを選択してください！");
+                    return;
+                }
+            }
+
+            template.onload = function() {
+                canvas.width = template.width;
+                canvas.height = template.height;
+                ctx.drawImage(template, 0, 0);
+                
+                if (input) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const userImage = new Image();
+                        userImage.src = e.target.result;
+                        userImage.onload = function() {
+                            const maxImageWidth = 1000;
+                            const maxImageHeight = 1000;
+                            let imgWidth = userImage.width;
+                            let imgHeight = userImage.height;
+                            
+                            if (imgWidth > maxImageWidth || imgHeight > maxImageHeight) {
+                                const aspectRatio = imgWidth / imgHeight;
+                                if (imgWidth > imgHeight) {
+                                    imgWidth = maxImageWidth;
+                                    imgHeight = maxImageWidth / aspectRatio;
+                                } else {
+                                    imgHeight = maxImageHeight;
+                                    imgWidth = maxImageHeight * aspectRatio;
+                                }
+                            }
+
+                            ctx.save();
+                            ctx.translate(150, 150);
+                            ctx.rotate(6 * Math.PI / 180);
+                            ctx.drawImage(userImage, -imgWidth / 2 + 440, -imgHeight / 2 + 375, imgWidth, imgHeight);
+                            ctx.restore();
+                            
+                            ctx.font = "40px Mv Boli";
+                            ctx.fillStyle = "black";
+                            ctx.textAlign = "center";
+                            
+                            const textX = 545;
+                            const textY = 1475;
+                            const maxTextWidth = 960;
+                            const lineHeight = 40;
+                            
+                            fillWrappedText(ctx, text, textX, textY, maxTextWidth, lineHeight);
+                            
+                            document.getElementById("downloadBtn").style.display = "inline";
+                            
+                            const tweetText = encodeURIComponent("推し布教Photoめ～か～!!で画像を作成しました！");
+                            const tweetURL = "https://cbetalwf.github.io/0217-2/";
+                            const hashtags = encodeURIComponent("VRide!,推し布教Photoめ～か～");
+                            
+                            document.getElementById("twitterShare").href = `https://twitter.com/intent/tweet?text=${tweetText}&url=${tweetURL}&hashtags=${hashtags}`;
+                            document.getElementById("twitterShare").style.display = "inline";
+                        };
+                    };
+                    reader.readAsDataURL(input);
+                }
+            };
+        }
+
+        function fillWrappedText(ctx, text, x, y, maxTextWidth, lineHeight) {
+            const words = text.split('');
+            let line = '';
+            let lines = [];
+
+            for (let i = 0; i < words.length; i++) {
+                let testLine = line + words[i];
+                let testWidth = ctx.measureText(testLine).width;
+                
+                if (testWidth > maxTextWidth && i > 0) {
+                    lines.push(line);
+                    line = words[i];
+                } else {
+                    line = testLine;
+                }
+            }
+            lines.push(line);
+
+            for (let j = 0; j < lines.length; j++) {
+                ctx.fillText(lines[j], x, y + j * lineHeight);
+            }
+        }
+        
+        function downloadImage() {
+            const canvas = document.getElementById("canvas");
+            const link = document.createElement("a");
+            link.download = "created_image.png";
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        }
+    </script>
+</body>
+</html>
